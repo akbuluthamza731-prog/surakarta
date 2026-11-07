@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sürakarta</title>
+<style>
+:root{--bg1:#16161a;--bg0:#000;--ink:#f3ead8;--glow:#ffd27a}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:radial-gradient(ellipse at 50% 35%,var(--bg1),var(--bg0) 72%) fixed;color:var(--ink);font:16px/1.4 system-ui,sans-serif;display:flex;justify-content:center;overflow:hidden}
+.scr{display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;width:100%;max-width:520px;height:100%;padding:20px}
+.scr.on{display:flex}
+h1{font:600 clamp(40px,12vw,64px)/1 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;letter-spacing:.02em;margin-bottom:18px}
+button{font:inherit;color:#1b1109;background:#c9915a;border:0;border-radius:12px;padding:13px 22px;min-width:140px;box-shadow:0 4px 0 #6d4521;cursor:pointer}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 #6d4521}
+button.g{background:#2a2a2e;color:var(--ink);box-shadow:0 4px 0 #0a0a0b;min-width:0;padding:10px 16px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
+input{font:inherit;text-transform:uppercase;text-align:center;letter-spacing:.3em;width:140px;padding:12px;border-radius:12px;border:1px solid #444;background:#0c0c0e;color:var(--ink)}
+.row{display:flex;gap:10px}
+#th{display:flex;gap:14px;margin-top:24px}
+#th b{width:26px;height:26px;border-radius:50%;border:2px solid #fff5;cursor:pointer}
+#er{color:#ff8a7a;min-height:1.4em}
+#code{font:600 56px/1 Georgia,serif;letter-spacing:.2em;padding-left:.2em}
+#game{justify-content:space-between;padding:12px 10px calc(14px + env(safe-area-inset-bottom))}
+#bar{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:480px}
+#who{font-weight:600}
+.d{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin:0 4px 0 12px}
+.d.b{background:radial-gradient(circle at 35% 30%,#888,#000 60%)}
+.d.w{background:radial-gradient(circle at 35% 30%,#fff,#a39d8c)}
+#stage{perspective:1000px;flex:1;display:flex;align-items:center;justify-content:center;width:100%}
+#bd{width:min(96vw,calc(100dvh - 200px),560px);aspect-ratio:1;transform:rotateX(26deg);filter:drop-shadow(0 36px 28px #000c)}
+#sv{width:100%;height:100%;display:block;border-radius:4%;box-shadow:0 10px 0 #6d4521,0 16px 0 #3a210c}
+.pc{transition:transform .28s ease,opacity .25s;cursor:pointer}
+.pc.sel circle{stroke:var(--glow);stroke-width:5}
+#act{display:flex;gap:10px}
+#ov{position:fixed;inset:0;background:#000b;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:5;font-size:22px;text-align:center;padding:20px}
+#ov[hidden]{display:none}
+#ovb{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#tt{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#222;padding:8px 16px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:6}
+@media(prefers-reduced-motion:reduce){.pc{transition:none}}
+</style>
+</head>
+<body>
+<section id="menu" class="scr on">
+  <h1>Sürakarta</h1>
+  <button id="mk">Oda kur</button>
+  <div class="row"><input id="cd" maxlength="4" placeholder="KOD" autocapitalize="characters" autocomplete="off"><button id="jn">Katıl</button></div>
+  <p id="er"></p>
+  <div id="th"></div>
+</section>
+<section id="wait" class="scr">
+  <p>Arkadaşına bu kodu gönder</p>
+  <div id="code"></div>
+  <button id="sh">Kodu paylaş</button>
+  <button id="cx" class="g">Vazgeç</button>
+</section>
+<section id="game" class="scr">
+  <div id="bar"><span id="who"></span><span id="cnt"></span></div>
+  <div id="stage"><div id="bd"><svg id="sv" viewBox="0 0 660 660"></svg></div></div>
+  <div id="act"><button id="dr" class="g">Beraberlik öner</button><button id="rs" class="g">Pes et</button></div>
+</section>
+<div id="ov" hidden><div id="ovt"></div><div id="ovb"></div></div>
+<div id="tt"></div>
+<script src="rules.js"></script>
+<script>
+const R=Rules,$=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg',G=70,O=155;
+const TH=[['#16161a','#000'],['#10203a','#01030a'],['#10281c','#010503'],['#2c1211','#050101']];
+function theme(i){document.body.style.setProperty('--bg1',TH[i][0]);document.body.style.setProperty('--bg0',TH[i][1]);try{localStorage.setItem('th',i)}catch{}}
+TH.forEach((t,i)=>{const b=document.createElement('b');b.style.background=`radial-gradient(circle at 35% 30%,${t[0]},${t[1]})`;b.title='Arka plan '+(i+1);b.onclick=()=>theme(i);$('th').appendChild(b)});
+try{theme(+localStorage.getItem('th')||0)}catch{}
+
+// ---- Tahta ----
+const sv=$('sv');
+let ln='';
+for(let k=0;k<6;k++)ln+=`M${O},${O+k*G}H${O+5*G}M${O+k*G},${O}V${O+5*G}`;
+let lp='';
+for(let a=0;a<360;a+=90)lp+=`<path transform="rotate(${a} 330 330)" d="M505,225A70 70 0 1 0 435,155M505,295A140 140 0 1 0 365,155"/>`;
+sv.innerHTML=`<defs>
+<filter id="nz" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" seed="7"/><feColorMatrix values="0 0 0 0 .35 0 0 0 0 .2 0 0 0 0 .09 0 0 0 1.6 -.55"/></filter>
+<radialGradient id="gb" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#9a9aa2"/><stop offset=".18" stop-color="#2a2a2e"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="gw" cx=".38" cy=".32" r=".85"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#ebe6d8"/><stop offset="1" stop-color="#a39d8c"/></radialGradient>
+<filter id="sh" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#000" flood-opacity=".55"/></filter></defs>
+<rect width="660" height="660" rx="26" fill="#c2884f"/>
+<rect width="660" height="660" rx="26" filter="url(#nz)" opacity=".75"/>
+<rect x="3" y="3" width="654" height="654" rx="24" fill="none" stroke="#7a4f27" stroke-width="6" opacity=".6"/>
+<g fill="none" stroke="#1b1109" stroke-width="4" stroke-linecap="round"><path d="${ln}"/>${lp}</g>
+<g id="hl"></g><g id="pc"></g>`;
+const pc=$('pc'),hl=$('hl');
+
+let ws,me,board,turn,flip,sel=null,tg=[],over=false,els={},cur='menu';
+const xy=(r,c)=>{const [y,x]=flip?[5-r,5-c]:[r,c];return [O+x*G,O+y*G]};
+const pos=(el,r,c)=>{const [x,y]=xy(r,c);el.style.transform=`translate(${x}px,${y}px)`};
+function mk(r,c,p){
+  const g=document.createElementNS(NS,'g');g.setAttribute('class','pc');g.dataset.r=r;g.dataset.c=c;
+  g.innerHTML=`<circle r="27" fill="url(#g${p})" stroke="#0004" stroke-width="1" filter="url(#sh)"/>`;
+  pos(g,r,c);pc.appendChild(g);els[r*6+c]=g;
+}
+function render(){
+  pc.replaceChildren();hl.replaceChildren();els={};
+  board.forEach((row,r)=>row.forEach((v,c)=>v&&mk(r,c,v)));
+}
+function info(){
+  $('who').textContent=over?'Oyun bitti':turn===me?'Senin sıran':'Rakibin sırası';
+  const o=me==='b'?'w':'b';
+  $('cnt').innerHTML=`Sen<i class="d ${me}"></i>${R.count(board,me)}&nbsp;&nbsp;Rakip<i class="d ${o}"></i>${R.count(board,o)}`;
+}
+function clear(){sel=null;tg=[];hl.replaceChildren();Object.values(els).forEach(e=>e.classList.remove('sel'))}
+function hints(){
+  hl.replaceChildren();
+  tg.forEach(m=>{
+    const [x,y]=xy(...m.to),g=document.createElementNS(NS,'g');
+    g.dataset.r=m.to[0];g.dataset.c=m.to[1];
+    g.innerHTML=m.cap?`<circle cx="${x}" cy="${y}" r="32" fill="none" stroke="#ff5a4a" stroke-width="5"/>`
+      :`<circle cx="${x}" cy="${y}" r="33" fill="#fff" fill-opacity=".01"/><circle cx="${x}" cy="${y}" r="9" fill="#ffd27a" opacity=".9"/>`;
+    hl.appendChild(g);
+  });
+}
+function tap(r,c){
+  if(over)return;
+  if(sel&&tg.some(m=>m.to[0]===r&&m.to[1]===c)){send({t:'move',from:sel,to:[r,c]});clear();return}
+  clear();
+  if(turn===me&&board[r][c]===me){sel=[r,c];tg=R.moves(board,r,c);els[r*6+c].classList.add('sel');hints()}
+}
+sv.onclick=e=>{const g=e.target.closest('[data-r]');g?tap(+g.dataset.r,+g.dataset.c):clear()};
+function doMove(m){
+  clear();
+  const a=m.from[0]*6+m.from[1],b=m.to[0]*6+m.to[1],el=els[a],dead=els[b];
+  if(dead){dead.style.opacity=0;setTimeout(()=>dead.remove(),300)}
+  delete els[a];els[b]=el;el.dataset.r=m.to[0];el.dataset.c=m.to[1];pos(el,...m.to);
+  board=R.apply(board,m.from,m.to);turn=m.turn;info();
+}
+
+// ---- Arayüz ----
+function show(id){cur=id;document.querySelectorAll('.scr').forEach(s=>s.classList.toggle('on',s.id===id))}
+function modal(t,bs){
+  $('ov').hidden=false;$('ovt').textContent=t;
+  $('ovb').replaceChildren(...bs.map(([l,f])=>{const b=document.createElement('button');b.textContent=l;b.onclick=()=>{$('ov').hidden=true;f&&f()};return b}));
+}
+function toast(t){const e=$('tt');e.textContent=t;e.style.opacity=1;setTimeout(()=>e.style.opacity=0,2200)}
+const send=o=>ws&&ws.readyState===1&&ws.send(JSON.stringify(o));
+function conn(first){
+  ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host);
+  ws.onopen=()=>send(first);
+  ws.onmessage=e=>on(JSON.parse(e.data));
+  ws.onclose=()=>{if(cur!=='menu'&&!over)modal('Bağlantı koptu',[['Menüye dön',()=>location.reload()]])};
+  $('er').textContent=cur==='menu'?'Bağlanıyor… (ilk açılış bir dakika sürebilir)':'';
+}
+setInterval(()=>send({t:'ping'}),25000);
+$('mk').onclick=()=>conn({t:'create'});
+$('jn').onclick=()=>{const k=$('cd').value.trim();k.length===4?conn({t:'join',code:k}):$('er').textContent='4 harfli kodu yaz.'};
+$('cx').onclick=()=>location.reload();
+$('sh').onclick=async()=>{const t=`Sürakarta oynayalım! Oda kodu: ${$('code').textContent} — ${location.href}`;
+  try{navigator.share?await navigator.share({text:t}):await navigator.clipboard.writeText(t),toast('Hazır')}catch{}};
+$('dr').onclick=()=>{if(!over){send({t:'draw'});toast('Teklif gönderildi')}};
+$('rs').onclick=()=>{if(!over)modal('Pes etmek istiyor musun?',[['Evet, pes et',()=>send({t:'resign'})],['Vazgeç']])};
+
+function on(m){
+  switch(m.t){
+    case 'room':$('code').textContent=m.code;show('wait');break;
+    case 'err':$('er').textContent=m.m;ws.close();break;
+    case 'start':
+      me=m.color;board=m.board;turn=m.turn;flip=me==='b';over=false;clear();render();info();show('game');$('ov').hidden=true;break;
+    case 'move':doMove(m);break;
+    case 'draw':modal('Rakip beraberlik öneriyor',[['Kabul et',()=>send({t:'drawYes'})],['Reddet',()=>send({t:'drawNo'})]]);break;
+    case 'drawNo':toast('Rakip beraberliği reddetti');break;
+    case 'end':
+      over=true;clear();info();
+      modal(m.winner==='draw'?'Berabere':m.winner===me?'Kazandın!':'Kaybettin',
+        [['Tekrar oyna',()=>{send({t:'again'});toast('Rakip bekleniyor…')}],['Menü',()=>location.reload()]]);break;
+    case 'left':over=true;modal('Rakip ayrıldı',[['Menüye dön',()=>location.reload()]]);break;
+  }
+  if(m.t==='move'&&m.winner){/* 'end' mesajı gelmez; sonucu burada göster */
+    over=true;info();
+    modal(m.winner===me?'Kazandın!':'Kaybettin',[['Tekrar oyna',()=>{send({t:'again'});toast('Rakip bekleniyor…')}],['Menü',()=>location.reload()]]);
+  }
+}
+</script>
+</body>
+</html>
